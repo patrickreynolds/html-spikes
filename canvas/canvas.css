@@ -1,0 +1,94 @@
+body {
+    margin: 40px;
+}
+
+.Controls {
+    width: 40%;
+    display: inline-block;
+    margin-bottom: 20px;
+    float: left;
+}
+
+.Control-set {
+    float: left;
+    margin-right: 40px;
+    border-bottom: 1px solid black;
+    width: 100%;
+}
+
+.Control-selector {
+    margin: 10px;
+    float: left;
+}
+
+.Control-color {
+    height: 80px;
+    width: 60px;
+    float: left;
+    cursor: pointer;
+
+    -webkit-transition: all 0.20s ease-in-out;
+    -moz-transition: all 0.20s ease-in-out;
+    -ms-transition: all 0.20s ease-in-out;
+    -o-transition: all 0.20s ease-in-out;
+    outline: none;
+    padding: 3px 0px 3px 3px;
+    margin: 5px 1px 3px 0px;
+    border: 1px solid #DDDDDD;
+}
+
+.Control-color.is-selected {
+    box-shadow: 0 0 5px rgba(81, 203, 238, 1);
+    padding: 3px 0px 3px 3px;
+    margin: 5px 1px 3px 0px;
+    border: 1px solid rgba(81, 203, 238, 1);
+}
+
+#black {
+    background-color: #212121;
+}
+
+#gray {
+    background-color: #cccccc;
+}
+
+#red {
+    background-color: #ba3d2d;
+}
+
+#green {
+    background-color: #8cbc30;
+}
+
+#blue {
+    background-color: #92b8bf;
+}
+
+#size-control-container {
+    height: 100px;
+    width: 100px;
+    border: 1px solid black;
+}
+
+.Layer-container-load {
+    width: 100%;
+    margin-right: 40px;
+    margin-bottom: 20px;
+    display: none;
+}
+
+.Layer-container-save {
+    width: 100%;
+    margin-right: 40px;
+    margin-bottom: 20px;
+    display: none;
+}
+
+.Canvas-container {
+    float: left;
+    border: 1px solid black;
+    cursor: pointer;
+    margin-left: 60px;
+    width: 50%;
+}
+

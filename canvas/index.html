@@ -1,0 +1,58 @@
+<html>
+    <head>
+        <title>Canvas Demo</title>
+        <link rel="stylesheet" type="text/css" href="canvas.css">
+    </head>
+    <body>
+        <div class="Controls">
+            <div class="Control-set">
+                <p><b>Uploads</b></p>
+                <button id="load-image" class="Control-selector">Load Image</button>
+                <button id="clear-image" class="Control-selector">Clear Image</button>
+                <button id="load-layer-info" class="Control-selector">Load Layer</button>
+                <button id="save-layer-info" class="Control-selector">Save Layer</button>
+            </div>
+            <div class="Control-set">
+                <p><b>Colors</b></p>
+                <div id="black" class="Control-selector Control-color"></div>
+                <div id="gray"  class="Control-selector Control-color"></div>
+                <div id="red"   class="Control-selector Control-color"></div>
+                <div id="green" class="Control-selector Control-color"></div>
+                <div id="blue"  class="Control-selector Control-color"></div>
+            </div>
+            <div class="Control-set">
+                <p><b>Sizes</b></p>
+                <button id="small" class="Control-selector Control-size">Small</button>
+                <button id="normal" class="Control-selector Control-size">Normal</button>
+                <button id="large" class="Control-selector Control-size">Large</button>
+            </div>
+            <div class="Control-set">
+                <p><b>Tools</b></p>
+                <button id="marker" class="Control-selector Control-tool">Marker</button>
+                <button id="eraser" class="Control-selector Control-tool">Eraser</button>
+            </div>
+            <div class="Control-set">
+                <p><b>Modifiers</b></p>
+                <button id="clear" class="Control-selector Control-modifier">Clear</button>
+            </div>
+            <div class="Layer-container-save">
+                <p><b>Layer Name</b></p>
+                <input id="layer-name">
+                <button id="save-layer">Save</button>
+            </div>
+            <div class="Layer-container-load">
+                <p><b>Select Layer</b></p>
+                <form action="" id="layer-list">
+                    <select name="layer">
+                    </select>
+                </form>
+                <button id="load-layer-confirm">Load</button>
+            </div>
+        </div>
+        <div class="Canvas-container">
+            <canvas height="250" width="600" id="whiteboard"></canvas>
+        </div>
+        <script src="http://code.jquery.com/jquery-2.1.0.min.js"></script>
+        <script src="canvas.js"></script>
+    </body>
+</html>
