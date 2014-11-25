@@ -1,0 +1,27 @@
+body {
+  text-align: center;
+}
+
+.video-container {
+  display: inline-block;
+}
+
+.play-button {
+  background: url('play@2x.png') no-repeat center;
+  height: 80px;
+  width: 80px;
+  margin: 0 auto;
+  position: relative;
+}
+
+progress {
+  color:#F0F0F0;
+  width:100%;
+  background:#434343;
+  display: block;
+}
+
+progress::-moz-progress-bar { background:#2e52a4; }
+progress::-webkit-progress-value {  background: #F0F0F0; } 
+
+.video { margin-bottom: -80px; }
