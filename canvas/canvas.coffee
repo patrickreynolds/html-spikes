@@ -4,22 +4,29 @@ Canvas = Canvas || {}
 
     $(() ->
         Canvas.bindEvents()
+        Canvas.positionCanvas Canvas.whiteboard.canvas
+        Canvas.redraw Canvas.whiteboard
     )
 
     Canvas.bindEvents = () ->
+
+        # Resize Events
+        $(window).resize ->
+            Canvas.positionCanvas Canvas.whiteboard.canvas
+            Canvas.redraw Canvas.whiteboard
 
         # Whiteboard Events
         $('#whiteboard').mousedown (ev) ->
             mouseX = ev.pageX - @offsetLeft
             mouseY = ev.pageY - @offsetTop
             Canvas.isPainting = true
-            addClick(ev.pageX - @offsetLeft, ev.pageY - @offsetTop)
-            redraw()
+            addClick ev.pageX - @offsetLeft, ev.pageY - @offsetTop
+            Canvas.redraw Canvas.whiteboard
 
         $('#whiteboard').mousemove (ev) ->
             if Canvas.isPainting
-                addClick(ev.pageX - @offsetLeft, ev.pageY - @offsetTop, true)
-                redraw()
+                addClick ev.pageX - @offsetLeft, ev.pageY - @offsetTop, true
+                Canvas.redraw Canvas.whiteboard
 
         $('#whiteboard').mouseup (ev) ->
             Canvas.isPainting = false
@@ -30,17 +37,20 @@ Canvas = Canvas || {}
 
         # Whiteboard Modifier Events
         $('#clear').mouseup (ev) ->
-            clear()
+            clear Canvas.whiteboard
+
 
         # Annotation Color Event
         $('.Control-color').mouseup (ev) ->
             clearSelectedColors()
-            markSelected(ev.target)
+            markSelected ev.target
             Canvas.currentColor = AnnotationColors[ev.target.id]
+
 
         # Annotation Size Events
         $('.Control-size').mouseup (ev) ->
             Canvas.currentSize = AnnotationSizes[ev.target.id]
+
 
         # Annotation Tool Events 
         $('.Control-tool').mouseup (ev) ->
@@ -63,10 +73,9 @@ Canvas = Canvas || {}
 
         $('#save-layer').mouseup (ev) ->
             saveLayer()
+    
 
-
-
-    whiteboard = $('#whiteboard').get(0).getContext '2d'
+    Canvas.whiteboard = $('#whiteboard').get(0).getContext '2d'
 
     AnnotationColors = {
         black: "#212121",
@@ -87,20 +96,20 @@ Canvas = Canvas || {}
         marker: 'marker'
     }
 
-    clickX       = new Array()
-    clickY       = new Array()
-    clickDrag    = new Array()
-    clickColor   = new Array()
-    clickSize    = new Array()
-    clickTool    = new Array()
-    imageLayers  = new Array()
-    destination  = new Array()
+    Canvas.points = []
 
     Canvas.currentColor = AnnotationColors.black
     Canvas.currentSize  = AnnotationSizes.normal
     Canvas.currentTool  = AnnotationTools.marker
-
     Canvas.isPainting = null
+
+    Point = () ->
+        x         = null
+        y         = null
+        dragState = null
+        size      = null
+        color     = null
+        gpo       = null
 
     markSelected = (el) ->
         $(el).addClass 'is-selected'
@@ -111,41 +120,47 @@ Canvas = Canvas || {}
     clearSelectedColors = () -> 
         $('.Control-color').each removeSelected
 
+    Canvas.positionCanvas = (canvas) ->
+        canvas.style.height = '100%'
+        canvas.style.width  = '100%'
+        canvas.width  = canvas.offsetWidth
+        canvas.height = canvas.offsetHeight
 
     addClick = (x, y, dragging) ->
-        clickX.push x
-        clickY.push y
-        clickDrag.push dragging
-        clickSize.push Canvas.currentSize
+        point = new Point
+        point.x         = x
+        point.y         = y
+        point.dragState = dragging
+        point.size      = Canvas.currentSize
 
         if Canvas.currentTool == "eraser"
-            clickColor.push 'rgb(0, 0, 0, 0)'
-            destination.push 'destination-out'
+            point.color = 'rgb(0, 0, 0, 0)'
+            point.gpo   = 'destination-out'
         else
-            clickColor.push Canvas.currentColor
-            destination.push 'source-over'
+            point.color = Canvas.currentColor
+            point.gpo   = 'source-over'
 
+        Canvas.points.push point
 
-    redraw = () ->
+    Canvas.redraw = (whiteboard) ->
         whiteboard.clearRect 0, 0, whiteboard.canvas.width, whiteboard.canvas.height
         whiteboard.lineJoin = "round"
-        
-        if imageLayers.length
-            whiteboard.drawImage imageLayers[0], 0, 0
 
-        for i in [0..clickX.length] by 1
-            whiteboard.beginPath()
-            if clickDrag[i] && i
-                whiteboard.moveTo clickX[i-1], clickY[i-1]
-            else
-                whiteboard.moveTo clickX[i]-1, clickY[i]
+        if Canvas.points.length
+            for i in [0...Canvas.points.length] by 1
+                whiteboard.beginPath()
+                point = Canvas.points[i]
+                if point.dragState && i
+                    whiteboard.moveTo Canvas.points[i - 1].x, Canvas.points[i - 1].y
+                else
+                    whiteboard.moveTo point.x - 1, point.y
 
-            whiteboard.lineTo clickX[i], clickY[i]
-            whiteboard.closePath()
-            whiteboard.strokeStyle = clickColor[i]
-            whiteboard.lineWidth = clickSize[i]
-            whiteboard.globalCompositeOperation = destination[i] || 'source-over'
-            whiteboard.stroke()
+                whiteboard.lineTo point.x, point.y
+                whiteboard.closePath()
+                whiteboard.strokeStyle = point.color
+                whiteboard.lineWidth   = point.size
+                whiteboard.globalCompositeOperation = point.gpo || 'source-over'
+                whiteboard.stroke()
 
 
     loadImage = (ev) ->
@@ -157,43 +172,33 @@ Canvas = Canvas || {}
     loadLayerInfo = (ev) ->
         $('.Layer-container-load').css 'display', 'inline-block'
         $('#layer-list').find('select').empty()
-        for index in [0..localStorage.length-1]
+        for index in [0...localStorage.length]
             layer = localStorage.key index
-            $('#layer-list').find('select').append(new Option(layer, layer))
+            $('#layer-list').find('select').append new Option layer, layer 
 
     loadLayer = (ev) ->
         $('.Layer-container-load').css 'display', 'none'
         layer = $('#layer-list').find('select').val()
-        imageString = localStorage.getItem layer
-        image = new Image()
-        image.src = imageString
-        imageLayers = []
-        imageLayers.push image
-        redraw()
+        layerPoints   = localStorage.getItem layer
+        Canvas.points = Canvas.points.concat JSON.parse layerPoints
+        Canvas.redraw Canvas.whiteboard
 
     saveLayerInfo = (ev) ->
         $('.Layer-container-save').css 'display', 'inline-block'
 
     saveLayer = (ev) ->
         layerName = $('#layer-name').val().trim()
-        layer = whiteboard.canvas.toDataURL()
-        if (layerName)
+        layer = Canvas.points
+        if layerName
             $('.Layer-container-save').css 'display', 'none'    
-            localStorage.setItem layerName, layer
-            $('#layer-name').val('')
+            localStorage.setItem layerName, JSON.stringify layer
+            $('#layer-name').val ''
         else
             alert("No layer name!")
             $('#layer-name').focus()
 
-    clear = () ->
+    clear = (whiteboard) ->
         whiteboard.clearRect 0, 0, whiteboard.canvas.width, whiteboard.canvas.height
-        clickX      = []
-        clickY      = []
-        clickDrag   = []
-        clickColor  = []
-        clickSize   = []
-        clickTool   = []
-        imageLayers = []
-        destination = []
-        
+        Canvas.points = []
+
 )(jQuery, Canvas)

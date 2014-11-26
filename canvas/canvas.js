@@ -4,23 +4,29 @@ var Canvas;
 Canvas = Canvas || {};
 
 (function($, Canvas) {
-  var AnnotationColors, AnnotationSizes, AnnotationTools, addClick, clear, clearImage, clearSelectedColors, clickColor, clickDrag, clickSize, clickTool, clickX, clickY, destination, imageLayers, loadImage, loadLayer, loadLayerInfo, markSelected, redraw, removeSelected, saveLayer, saveLayerInfo, whiteboard;
+  var AnnotationColors, AnnotationSizes, AnnotationTools, Point, addClick, clear, clearImage, clearSelectedColors, loadImage, loadLayer, loadLayerInfo, markSelected, removeSelected, saveLayer, saveLayerInfo;
   $(function() {
-    return Canvas.bindEvents();
+    Canvas.bindEvents();
+    Canvas.positionCanvas(Canvas.whiteboard.canvas);
+    return Canvas.redraw(Canvas.whiteboard);
   });
   Canvas.bindEvents = function() {
+    $(window).resize(function() {
+      Canvas.positionCanvas(Canvas.whiteboard.canvas);
+      return Canvas.redraw(Canvas.whiteboard);
+    });
     $('#whiteboard').mousedown(function(ev) {
       var mouseX, mouseY;
       mouseX = ev.pageX - this.offsetLeft;
       mouseY = ev.pageY - this.offsetTop;
       Canvas.isPainting = true;
       addClick(ev.pageX - this.offsetLeft, ev.pageY - this.offsetTop);
-      return redraw();
+      return Canvas.redraw(Canvas.whiteboard);
     });
     $('#whiteboard').mousemove(function(ev) {
       if (Canvas.isPainting) {
         addClick(ev.pageX - this.offsetLeft, ev.pageY - this.offsetTop, true);
-        return redraw();
+        return Canvas.redraw(Canvas.whiteboard);
       }
     });
     $('#whiteboard').mouseup(function(ev) {
@@ -30,7 +36,7 @@ Canvas = Canvas || {};
       return Canvas.isPainting = false;
     });
     $('#clear').mouseup(function(ev) {
-      return clear();
+      return clear(Canvas.whiteboard);
     });
     $('.Control-color').mouseup(function(ev) {
       clearSelectedColors();
@@ -62,7 +68,7 @@ Canvas = Canvas || {};
       return saveLayer();
     });
   };
-  whiteboard = $('#whiteboard').get(0).getContext('2d');
+  Canvas.whiteboard = $('#whiteboard').get(0).getContext('2d');
   AnnotationColors = {
     black: "#212121",
     gray: "#CCCCCC",
@@ -79,18 +85,20 @@ Canvas = Canvas || {};
     eraser: 'eraser',
     marker: 'marker'
   };
-  clickX = new Array();
-  clickY = new Array();
-  clickDrag = new Array();
-  clickColor = new Array();
-  clickSize = new Array();
-  clickTool = new Array();
-  imageLayers = new Array();
-  destination = new Array();
+  Canvas.points = [];
   Canvas.currentColor = AnnotationColors.black;
   Canvas.currentSize = AnnotationSizes.normal;
   Canvas.currentTool = AnnotationTools.marker;
   Canvas.isPainting = null;
+  Point = function() {
+    var color, dragState, gpo, size, x, y;
+    x = null;
+    y = null;
+    dragState = null;
+    size = null;
+    color = null;
+    return gpo = null;
+  };
   markSelected = function(el) {
     return $(el).addClass('is-selected');
   };
@@ -100,42 +108,51 @@ Canvas = Canvas || {};
   clearSelectedColors = function() {
     return $('.Control-color').each(removeSelected);
   };
-  addClick = function(x, y, dragging) {
-    clickX.push(x);
-    clickY.push(y);
-    clickDrag.push(dragging);
-    clickSize.push(Canvas.currentSize);
-    if (Canvas.currentTool === "eraser") {
-      clickColor.push('rgb(0, 0, 0, 0)');
-      return destination.push('destination-out');
-    } else {
-      clickColor.push(Canvas.currentColor);
-      return destination.push('source-over');
-    }
+  Canvas.positionCanvas = function(canvas) {
+    canvas.style.height = '100%';
+    canvas.style.width = '100%';
+    canvas.width = canvas.offsetWidth;
+    return canvas.height = canvas.offsetHeight;
   };
-  redraw = function() {
-    var i, _i, _ref, _results;
+  addClick = function(x, y, dragging) {
+    var point;
+    point = new Point;
+    point.x = x;
+    point.y = y;
+    point.dragState = dragging;
+    point.size = Canvas.currentSize;
+    if (Canvas.currentTool === "eraser") {
+      point.color = 'rgb(0, 0, 0, 0)';
+      point.gpo = 'destination-out';
+    } else {
+      point.color = Canvas.currentColor;
+      point.gpo = 'source-over';
+    }
+    return Canvas.points.push(point);
+  };
+  Canvas.redraw = function(whiteboard) {
+    var i, point, _i, _ref, _results;
     whiteboard.clearRect(0, 0, whiteboard.canvas.width, whiteboard.canvas.height);
     whiteboard.lineJoin = "round";
-    if (imageLayers.length) {
-      whiteboard.drawImage(imageLayers[0], 0, 0);
-    }
-    _results = [];
-    for (i = _i = 0, _ref = clickX.length; _i <= _ref; i = _i += 1) {
-      whiteboard.beginPath();
-      if (clickDrag[i] && i) {
-        whiteboard.moveTo(clickX[i - 1], clickY[i - 1]);
-      } else {
-        whiteboard.moveTo(clickX[i] - 1, clickY[i]);
+    if (Canvas.points.length) {
+      _results = [];
+      for (i = _i = 0, _ref = Canvas.points.length; _i < _ref; i = _i += 1) {
+        whiteboard.beginPath();
+        point = Canvas.points[i];
+        if (point.dragState && i) {
+          whiteboard.moveTo(Canvas.points[i - 1].x, Canvas.points[i - 1].y);
+        } else {
+          whiteboard.moveTo(point.x - 1, point.y);
+        }
+        whiteboard.lineTo(point.x, point.y);
+        whiteboard.closePath();
+        whiteboard.strokeStyle = point.color;
+        whiteboard.lineWidth = point.size;
+        whiteboard.globalCompositeOperation = point.gpo || 'source-over';
+        _results.push(whiteboard.stroke());
       }
-      whiteboard.lineTo(clickX[i], clickY[i]);
-      whiteboard.closePath();
-      whiteboard.strokeStyle = clickColor[i];
-      whiteboard.lineWidth = clickSize[i];
-      whiteboard.globalCompositeOperation = destination[i] || 'source-over';
-      _results.push(whiteboard.stroke());
+      return _results;
     }
-    return _results;
   };
   loadImage = function(ev) {
     return $('.Canvas-container').css('background', 'url(' + 'adobe-xd.png' + ') center no-repeat');
@@ -148,22 +165,19 @@ Canvas = Canvas || {};
     $('.Layer-container-load').css('display', 'inline-block');
     $('#layer-list').find('select').empty();
     _results = [];
-    for (index = _i = 0, _ref = localStorage.length - 1; 0 <= _ref ? _i <= _ref : _i >= _ref; index = 0 <= _ref ? ++_i : --_i) {
+    for (index = _i = 0, _ref = localStorage.length; 0 <= _ref ? _i < _ref : _i > _ref; index = 0 <= _ref ? ++_i : --_i) {
       layer = localStorage.key(index);
       _results.push($('#layer-list').find('select').append(new Option(layer, layer)));
     }
     return _results;
   };
   loadLayer = function(ev) {
-    var image, imageString, layer;
+    var layer, layerPoints;
     $('.Layer-container-load').css('display', 'none');
     layer = $('#layer-list').find('select').val();
-    imageString = localStorage.getItem(layer);
-    image = new Image();
-    image.src = imageString;
-    imageLayers = [];
-    imageLayers.push(image);
-    return redraw();
+    layerPoints = localStorage.getItem(layer);
+    Canvas.points = Canvas.points.concat(JSON.parse(layerPoints));
+    return Canvas.redraw(Canvas.whiteboard);
   };
   saveLayerInfo = function(ev) {
     return $('.Layer-container-save').css('display', 'inline-block');
@@ -171,25 +185,18 @@ Canvas = Canvas || {};
   saveLayer = function(ev) {
     var layer, layerName;
     layerName = $('#layer-name').val().trim();
-    layer = whiteboard.canvas.toDataURL();
+    layer = Canvas.points;
     if (layerName) {
       $('.Layer-container-save').css('display', 'none');
-      localStorage.setItem(layerName, layer);
+      localStorage.setItem(layerName, JSON.stringify(layer));
       return $('#layer-name').val('');
     } else {
       alert("No layer name!");
       return $('#layer-name').focus();
     }
   };
-  return clear = function() {
+  return clear = function(whiteboard) {
     whiteboard.clearRect(0, 0, whiteboard.canvas.width, whiteboard.canvas.height);
-    clickX = [];
-    clickY = [];
-    clickDrag = [];
-    clickColor = [];
-    clickSize = [];
-    clickTool = [];
-    imageLayers = [];
-    return destination = [];
+    return Canvas.points = [];
   };
 })(jQuery, Canvas);
